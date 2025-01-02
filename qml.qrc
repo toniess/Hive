@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>GameBoard.qml</file>
+        <file>Hexagon.qml</file>
+        <file>images/bee.svg</file>
+        <file>images/bug.svg</file>
+        <file>images/ant.svg</file>
+        <file>images/gnat.svg</file>
+        <file>images/spider.svg</file>
+        <file>images/ladybug.svg</file>
+        <file>images/grasshoper.svg</file>
+        <file>images/pillbug.svg</file>
+        <file>GameInterface.qml</file>
+        <file>SideGamePanel.qml</file>
+        <file>MainMenu.qml</file>
+        <file>modules/Singleton/Enums.qml</file>
+        <file>modules/Singleton/qmldir</file>
+    </qresource>
+</RCC>
