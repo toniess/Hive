@@ -18,7 +18,14 @@ Rectangle{
 
     onCheckedInsectTypeChanged: gameBoard.currentInsectType = [checkedInsectType, isBlack]
 
-    Connections{ target: gameBoard; onOffSellChoiceMode: panel.checkedInsectType = ""}
+    Connections{
+        target: gameBoard
+
+        function onOffSellChoiceMode() {
+            panel.checkedInsectType = ""
+        }
+    }
+
     clip: true
 
     radius: 20

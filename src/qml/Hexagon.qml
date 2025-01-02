@@ -5,7 +5,7 @@ import QtQml 2.3
 //import QtGraphicalEffects 1.0
 Rectangle{
     id: hexagon
-    property string imageSource : "./images/" + insectType
+    property string imageSource : insectType ? "../images/" + insectType : ""
     property string insectType
     color: "transparent"
     rotation: 0

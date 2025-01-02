@@ -3,8 +3,6 @@ import QtQuick.Window 2.12
 import QtQml.Models 2.3
 import QtQuick.Templates 2.5
 
-import Singleton 1.0
-
 
 
 Window {
