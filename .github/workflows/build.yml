@@ -126,8 +126,19 @@ jobs:
       - name: Deploy
         run: |
           cd build
-          macdeployqt Hive.app -qmldir=../src/qml -dmg
-          mv Hive.dmg ../Hive-macos.dmg
+          macdeployqt Hive.app -qmldir=../src/qml
+
+      - name: Ad-hoc sign
+        run: |
+          codesign --force --deep --sign - build/Hive.app
+          codesign --verify --deep --strict --verbose=2 build/Hive.app
+
+      - name: Create DMG
+        run: |
+          mkdir dmg
+          cp -R build/Hive.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname Hive -srcfolder dmg -ov -format UDZO Hive-macos.dmg
 
       - uses: actions/upload-artifact@v4
         with:
