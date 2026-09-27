@@ -1,0 +1,151 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.8.3'
+  APP_NAME: Hive
+
+jobs:
+  linux:
+    name: Linux (AppImage)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libfuse2
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          qmake ../HiveQML.pro CONFIG+=release
+          make -j$(nproc)
+
+      - name: Package AppImage
+        env:
+          QML_SOURCES_PATHS: ${{ github.workspace }}/src/qml
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+
+          cp images/bee.svg hive.svg
+          cat > hive.desktop <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=Hive
+          Comment=Board game Hive
+          Exec=Hive
+          Icon=hive
+          Categories=Game;BoardGame;
+          EOF
+
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            --executable build/Hive \
+            --desktop-file hive.desktop \
+            --icon-file hive.svg \
+            --plugin qt \
+            --output appimage
+          mv Hive*.AppImage Hive-linux-x86_64.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hive-linux
+          path: Hive-linux-x86_64.AppImage
+
+  windows:
+    name: Windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Build
+        shell: cmd
+        run: |
+          mkdir build && cd build
+          qmake ..\HiveQML.pro CONFIG+=release
+          nmake
+
+      - name: Deploy
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item build\release\Hive.exe dist\
+          windeployqt --release --qmldir src\qml --no-translations dist\Hive.exe
+          Compress-Archive -Path dist\* -DestinationPath Hive-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hive-windows
+          path: Hive-windows-x64.zip
+
+  macos:
+    name: macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          qmake ../HiveQML.pro CONFIG+=release
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Deploy
+        run: |
+          cd build
+          macdeployqt Hive.app -qmldir=../src/qml -dmg
+          mv Hive.dmg ../Hive-macos.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hive-macos
+          path: Hive-macos.dmg
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

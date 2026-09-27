@@ -1,6 +1,8 @@
 QT += quick qml
 
-CONFIG += c++11
+TARGET = Hive
+
+CONFIG += c++17
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
